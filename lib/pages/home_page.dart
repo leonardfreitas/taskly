@@ -1,40 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:taskly/pages/projects_page.dart';
+import 'package:provider/provider.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:taskly/providers/task_provider.dart';
 import 'package:taskly/routes/routes.dart';
-import 'package:taskly/widgets/input.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      Provider.of<TaskProvider>(context, listen: false).listTasks();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final taskProvider = Provider.of<TaskProvider>(context);
+    final tasks = taskProvider.tasks;
+
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(18.0),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 100,
-                ),
-                Input(),
-                ElevatedButton(
-                  onPressed: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => const ProjectsPage(),
-                    //   ),
-                    // );
-                    Navigator.pushNamed(context, AppRoutes.projects);
-                  },
-                  child: Text('Project'),
-                )
-              ],
-            ),
+        child: Padding(
+          padding: const EdgeInsets.all(18.0),
+          child: Skeletonizer(
+            enabled: taskProvider.isLoading,
+            enableSwitchAnimation: true,
+            child: taskProvider.isLoading
+                ? ListView.builder(
+                    itemCount: 6,
+                    itemBuilder: (context, index) {
+                      return const Card(
+                        child: ListTile(
+                          leading: Icon(Icons.check_box_outline_blank),
+                          title: Text(''),
+                        ),
+                      );
+                    },
+                  )
+                : ListView.builder(
+                    itemCount: tasks.length,
+                    itemBuilder: (context, index) {
+                      final task = tasks[index];
+                      return Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.check_box_outline_blank),
+                          title: Text(task.name),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.newTask,
+          );
+        },
+        backgroundColor: Colors.orange,
+        child: const Icon(Icons.add),
       ),
     );
   }
